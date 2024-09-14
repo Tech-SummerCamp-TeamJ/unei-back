@@ -4,6 +4,7 @@ mod m20240914_135509_create_member;
 mod m20240914_140343_create_group;
 mod m20240914_145822_create_tag;
 mod m20240914_153249_create_reaction;
+mod m20240914_160657_create_comment;
 
 pub struct Migrator;
 
@@ -16,6 +17,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240914_140343_create_group::Migration),
             Box::new(m20240914_145822_create_tag::Migration),
             Box::new(m20240914_153249_create_reaction::Migration),
+            Box::new(m20240914_160657_create_comment::Migration),
         ]
     }
 }
