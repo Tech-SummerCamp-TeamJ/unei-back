@@ -36,7 +36,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Comment {
+pub(crate) enum Comment {
     Table,
     Id,
     Content,

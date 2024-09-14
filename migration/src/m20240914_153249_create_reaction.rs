@@ -35,7 +35,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum Reaction {
+pub(crate) enum Reaction {
     Table,
     Id,
     AuthorId,

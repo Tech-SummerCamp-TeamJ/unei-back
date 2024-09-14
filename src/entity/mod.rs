@@ -2,6 +2,8 @@
 
 pub mod prelude;
 
+pub mod comment;
+pub mod event;
 pub mod group;
 pub mod member;
 pub mod reaction;
