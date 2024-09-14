@@ -15,13 +15,12 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(
                         ColumnDef::new(Group::Id)
-                            .integer()
+                            .uuid()
                             .not_null()
-                            .auto_increment()
                             .primary_key(),
                     )
                     .col(ColumnDef::new(Group::Name).string().not_null())
-                    .col(ColumnDef::new(Group::MemberId).integer().not_null())
+                    .col(ColumnDef::new(Group::MemberId).uuid().not_null())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_member_id")

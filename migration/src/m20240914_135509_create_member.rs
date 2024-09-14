@@ -15,13 +15,11 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(
                         ColumnDef::new(Member::Id)
-                            .integer()
+                            .uuid()
                             .not_null()
-                            .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Member::GroupId).integer().not_null())
-                    .col(ColumnDef::new(Member::UserId).integer().not_null())
+                    .col(ColumnDef::new(Member::UserId).uuid().not_null())
                     .col(ColumnDef::new(Member::IsAdmin).boolean().not_null())
                     .foreign_key(
                         ForeignKey::create()
