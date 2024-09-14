@@ -1,6 +1,6 @@
 use sea_orm_migration::prelude::*;
 
-use crate::{m20240914_134946_create_user::User, m20240914_140343_create_group::Group};
+use crate::m20240914_134946_create_user::User;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -23,12 +23,6 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Member::IsAdmin).boolean().not_null())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_group_id")
-                            .from(Member::Table, Member::GroupId)
-                            .to(Group::Table, Group::Id),
-                    )
-                    .foreign_key(
-                        ForeignKey::create()
                             .name("fk_user_id")
                             .from(Member::Table, Member::UserId)
                             .to(User::Table, User::Id),
@@ -49,7 +43,6 @@ impl MigrationTrait for Migration {
 pub(crate) enum Member {
     Table,
     Id,
-    GroupId,
     UserId,
     IsAdmin,
 }
