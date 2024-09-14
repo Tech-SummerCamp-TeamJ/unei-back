@@ -3,6 +3,8 @@ use actix_web::{
     web::{self, ServiceConfig},
     Responder,
 };
+use migration::MigratorTrait;
+use sea_orm::SqlxPostgresConnector;
 use shuttle_actix_web::ShuttleActixWeb;
 use sqlx::PgPool;
 
@@ -20,10 +22,11 @@ struct AppState {
 async fn main(
     #[shuttle_shared_db::Postgres] pool: PgPool,
 ) -> ShuttleActixWeb<impl FnOnce(&mut ServiceConfig) + Send + Clone + 'static> {
-    sqlx::migrate!()
-        .run(&pool)
+    let db = SqlxPostgresConnector::from_sqlx_postgres_pool(pool.clone());
+
+    migration::Migrator::up(&db, None)
         .await
-        .expect("Failed to run migrations");
+        .expect("Migrations failed");
 
     let state = web::Data::new(AppState { pool });
 

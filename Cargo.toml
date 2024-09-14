@@ -9,5 +9,14 @@ shuttle-actix-web = "0.47.0"
 shuttle-runtime = "0.47.0"
 serde = "1.0.148"
 shuttle-shared-db = { version = "0.47.0", features = ["postgres", "sqlx"] }
+sea-orm = { version = "0.12.15", features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls", # `ASYNC_RUNTIME` feature
+    "macros",
+] }
+migration = { path = "./migration" }
 sqlx = "0.7.1"
 tokio = "1.26.0"
+
+[workspace]
+members = [".", "migration"]
