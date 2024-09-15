@@ -52,7 +52,9 @@ async fn login(app_state: web::Data<AppState>) -> impl Responder {
         AuthUrl::new("https://discord.com/api/oauth2/authorize".to_string()).unwrap(),
         Some(TokenUrl::new("https://discord.com/api/oauth2/token".to_string()).unwrap()),
     )
-    .set_redirect_uri(RedirectUrl::new("https://unei.shuttleapp.rs/auth/callback".to_string()).unwrap());
+    .set_redirect_uri(
+        RedirectUrl::new("https://unei.shuttleapp.rs/auth/callback".to_string()).unwrap(),
+    );
 
     let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
@@ -77,7 +79,9 @@ async fn callback(
         AuthUrl::new("https://discord.com/api/oauth2/authorize".to_string()).unwrap(),
         Some(TokenUrl::new("https://discord.com/api/oauth2/token".to_string()).unwrap()),
     )
-    .set_redirect_uri(RedirectUrl::new("https://unei.shuttleapp.rs/auth/callback".to_string()).unwrap());
+    .set_redirect_uri(
+        RedirectUrl::new("https://unei.shuttleapp.rs/auth/callback".to_string()).unwrap(),
+    );
 
     // 認証コードを取得
     let token_result = client
@@ -123,6 +127,8 @@ async fn get_discord_user_info(token: &str) -> actix_web::Result<DiscordUser> {
 struct DiscordUser {
     id: String,
     username: String,
+    avatar_id: String,
+    email: Option<String>,
 }
 
 #[derive(Clone)]
