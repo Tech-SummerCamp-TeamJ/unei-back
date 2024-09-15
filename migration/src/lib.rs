@@ -10,6 +10,7 @@ mod m20240915_113446_add_theme_to_group;
 mod m20240915_125941_create_session;
 mod m20240915_134829_remove_member_id_from_group;
 mod m20240915_145308_add_group_id_to_member;
+mod m20240915_231848_create_reaction;
 
 pub struct Migrator;
 
@@ -28,6 +29,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240915_125941_create_session::Migration),
             Box::new(m20240915_134829_remove_member_id_from_group::Migration),
             Box::new(m20240915_145308_add_group_id_to_member::Migration),
+            Box::new(m20240915_231848_create_reaction::Migration),
         ]
     }
 }
