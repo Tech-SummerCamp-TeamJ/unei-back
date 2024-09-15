@@ -7,6 +7,7 @@ mod m20240914_153249_create_reaction;
 mod m20240914_160657_create_comment;
 mod m20240914_174810_create_event;
 mod m20240915_113446_add_theme_to_group;
+mod m20240915_125941_create_session;
 
 pub struct Migrator;
 
@@ -22,6 +23,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20240914_160657_create_comment::Migration),
             Box::new(m20240914_174810_create_event::Migration),
             Box::new(m20240915_113446_add_theme_to_group::Migration),
+            Box::new(m20240915_125941_create_session::Migration),
         ]
     }
 }

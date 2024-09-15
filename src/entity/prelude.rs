@@ -5,5 +5,6 @@ pub use super::event::Entity as Event;
 pub use super::group::Entity as Group;
 pub use super::member::Entity as Member;
 pub use super::reaction::Entity as Reaction;
+pub use super::session::Entity as Session;
 pub use super::tag::Entity as Tag;
 pub use super::user::Entity as User;

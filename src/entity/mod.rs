@@ -7,5 +7,6 @@ pub mod event;
 pub mod group;
 pub mod member;
 pub mod reaction;
+pub mod session;
 pub mod tag;
 pub mod user;
