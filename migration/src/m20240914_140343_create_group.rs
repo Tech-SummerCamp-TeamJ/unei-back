@@ -21,6 +21,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Group::Name).string().not_null())
                     .col(ColumnDef::new(Group::MemberId).uuid().not_null())
+                    .col(ColumnDef::new(Group::IconPath).string())
                     .foreign_key(
                         ForeignKey::create()
                             .name("fk_member_id")
@@ -45,4 +46,5 @@ pub(crate) enum Group {
     Id,
     Name,
     MemberId,
+    IconPath,
 }
