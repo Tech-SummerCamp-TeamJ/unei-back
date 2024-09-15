@@ -10,6 +10,7 @@ pub struct Model {
     pub name: String,
     pub member_id: Uuid,
     pub icon_path: Option<String>,
+    pub theme: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
