@@ -7,6 +7,7 @@ use actix_web::{
     cookie::Key,
     get,
     middleware::{self, Logger},
+    post,
     web::{self, ServiceConfig},
     HttpMessage, Responder,
 };
@@ -16,7 +17,12 @@ use actix_web::{
     web::Query,
     HttpRequest, HttpResponse,
 };
-use entity::{session, user};
+use entity::{
+    group::{self, Entity},
+    member,
+    prelude::*,
+    session, user,
+};
 use migration::MigratorTrait;
 use oauth2::{basic::BasicClient, reqwest::async_http_client};
 use oauth2::{
@@ -24,7 +30,10 @@ use oauth2::{
     TokenResponse, TokenUrl,
 };
 use reqwest::Client;
-use sea_orm::{ActiveModelTrait, DatabaseConnection, Set, SqlxPostgresConnector};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
+    SqlxPostgresConnector,
+};
 use serde::Deserialize;
 use shuttle_actix_web::ShuttleActixWeb;
 use shuttle_runtime::SecretStore;
@@ -146,6 +155,64 @@ async fn get_discord_user_info(token: &str) -> actix_web::Result<DiscordUser> {
         .await
         .map_err(|err| error::ErrorInternalServerError(err))?;
     Ok(user_info)
+}
+
+#[post("/groups")]
+async fn groups(
+    identity: Option<Identity>,
+    app_state: web::Data<AppState>,
+    group: web::Json<group_scheme::Group>,
+) -> actix_web::Result<impl Responder> {
+    log::info!("Identity: {:?}", identity.is_some());
+    let session_id = match identity {
+        Some(id) => id.id()?,
+        None => return Err(error::ErrorUnauthorized("Unauthorized")),
+    };
+    let groups = Group::find().all(&app_state.db).await.map_err(|err| {
+        error::ErrorInternalServerError(format!("Failed to get groups: {:?}", err))
+    })?;
+    log::info!("FirstGroups: {}", groups.len());
+
+    let user_id = Session::find()
+        .filter(session::Column::SessionId.eq(session_id))
+        .one(&app_state.db)
+        .await
+        .map_err(|err| {
+            error::ErrorInternalServerError(format!("Failed to get session: {:?}", err))
+        })?
+        .map(|session| session.user_id)
+        .ok_or_else(|| error::ErrorUnauthorized("Unauthorized"))?;
+
+    let group = group.into_inner();
+    let group_id = group::ActiveModel {
+        id: Set(Uuid::now_v7()),
+        name: Set(group.name),
+        icon_path: Set(group.icon_path),
+        theme: Set(group.theme),
+    }
+    .insert(&app_state.db)
+    .await
+    .map_err(|err| error::ErrorInternalServerError(format!("Failed to insert group: {:?}", err)))?
+    .id;
+
+    member::ActiveModel {
+        id: Set(Uuid::now_v7()),
+        user_id: Set(user_id),
+        is_admin: Set(true),
+        group_id: Set(group_id),
+    }
+    .insert(&app_state.db)
+    .await
+    .map_err(|err| {
+        error::ErrorInternalServerError(format!("Failed to insert member: {:?}", err))
+    })?;
+
+    let groups = Group::find().all(&app_state.db).await.map_err(|err| {
+        error::ErrorInternalServerError(format!("Failed to get groups: {:?}", err))
+    })?;
+    log::info!("Groups: {}", groups.len());
+
+    Ok(HttpResponse::Created().json(group_id))
 }
 
 #[derive(Deserialize, Debug)]
