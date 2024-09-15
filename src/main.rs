@@ -1,3 +1,5 @@
+mod entity;
+
 use actix_identity::{Identity, IdentityMiddleware};
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
 use actix_web::{
@@ -13,6 +15,7 @@ use actix_web::{
     web::Query,
     HttpRequest, HttpResponse,
 };
+use entity::user;
 use migration::MigratorTrait;
 use oauth2::{basic::BasicClient, reqwest::async_http_client};
 use oauth2::{
@@ -20,11 +23,12 @@ use oauth2::{
     TokenResponse, TokenUrl,
 };
 use reqwest::Client;
-use sea_orm::SqlxPostgresConnector;
+use sea_orm::{ActiveModelTrait, DatabaseConnection, Set, SqlxPostgresConnector};
 use serde::Deserialize;
 use shuttle_actix_web::ShuttleActixWeb;
 use shuttle_runtime::SecretStore;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 #[derive(Deserialize)]
 struct AuthRequest {
@@ -52,7 +56,7 @@ async fn login(app_state: web::Data<AppState>) -> impl Responder {
         AuthUrl::new("https://discord.com/api/oauth2/authorize".to_string()).unwrap(),
         Some(TokenUrl::new("https://discord.com/api/oauth2/token".to_string()).unwrap()),
     )
-    .set_redirect_uri(RedirectUrl::new("https://unei.shuttleapp.rs/auth/callback".to_string()).unwrap());
+    .set_redirect_uri(RedirectUrl::new(app_state.redirect_url.clone()).unwrap());
 
     let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
@@ -77,7 +81,7 @@ async fn callback(
         AuthUrl::new("https://discord.com/api/oauth2/authorize".to_string()).unwrap(),
         Some(TokenUrl::new("https://discord.com/api/oauth2/token".to_string()).unwrap()),
     )
-    .set_redirect_uri(RedirectUrl::new("https://unei.shuttleapp.rs/auth/callback".to_string()).unwrap());
+    .set_redirect_uri(RedirectUrl::new(app_state.redirect_url.clone()).unwrap());
 
     // 認証コードを取得
     let token_result = client
@@ -91,6 +95,22 @@ async fn callback(
 
     // トークンからDiscordユーザー情報を取得
     let user_info = get_discord_user_info(token_result.access_token().secret()).await?;
+
+    user::ActiveModel {
+        id: Set(Uuid::now_v7()),
+        name: Set(user_info.username.clone()),
+        email: Set(user_info.email.clone().unwrap_or("".to_string())),
+        icon_path: Set(format!(
+            "https://cdn.discordapp.com/avatars/{}/{}.png",
+            user_info.id, user_info.avatar
+        )),
+    }
+    .insert(&app_state.db)
+    .await
+    .map_err(|err| {
+        log::info!("Failed to insert user: {:?}", err);
+        error::ErrorInternalServerError(err)
+    })?;
 
     // セッションにユーザーIDを保存
     Identity::login(&req.extensions(), user_info.id)?;
@@ -119,17 +139,20 @@ async fn get_discord_user_info(token: &str) -> actix_web::Result<DiscordUser> {
     Ok(user_info)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct DiscordUser {
     id: String,
     username: String,
+    avatar: String,
+    email: Option<String>,
 }
 
 #[derive(Clone)]
 struct AppState {
-    pool: PgPool,
+    db: DatabaseConnection,
     client_id: String,
     client_secret: String,
+    redirect_url: String,
 }
 
 #[shuttle_runtime::main]
@@ -147,11 +170,15 @@ async fn main(
     let client_secret = secret_store
         .get("CLIENT_SECRET")
         .expect("CLIENT_SECRET is not set");
+    let redirect_url = secret_store
+        .get("REDIRECT_URL")
+        .expect("REDIRECT_URL is not set");
 
     let state = web::Data::new(AppState {
-        pool,
+        db,
         client_id,
         client_secret,
+        redirect_url,
     });
 
     let secret_key = Key::generate();
