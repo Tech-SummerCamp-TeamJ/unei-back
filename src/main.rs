@@ -1,4 +1,5 @@
 mod entity;
+mod group_scheme;
 
 use actix_identity::{Identity, IdentityMiddleware};
 use actix_session::{storage::CookieSessionStore, SessionMiddleware};
@@ -15,7 +16,7 @@ use actix_web::{
     web::Query,
     HttpRequest, HttpResponse,
 };
-use entity::user;
+use entity::{session, user};
 use migration::MigratorTrait;
 use oauth2::{basic::BasicClient, reqwest::async_http_client};
 use oauth2::{
@@ -96,7 +97,7 @@ async fn callback(
     // トークンからDiscordユーザー情報を取得
     let user_info = get_discord_user_info(token_result.access_token().secret()).await?;
 
-    user::ActiveModel {
+    let user_id = user::ActiveModel {
         id: Set(Uuid::now_v7()),
         name: Set(user_info.username.clone()),
         email: Set(user_info.email.clone().unwrap_or("".to_string())),
@@ -110,10 +111,18 @@ async fn callback(
     .map_err(|err| {
         log::info!("Failed to insert user: {:?}", err);
         error::ErrorInternalServerError(err)
-    })?;
+    })?
+    .id;
 
     // セッションにユーザーIDを保存
-    Identity::login(&req.extensions(), user_info.id)?;
+    let identity = Identity::login(&req.extensions(), user_info.id)?;
+
+    session::ActiveModel {
+        id: Set(Uuid::now_v7()),
+        session_id: Set(identity.id()?.to_string()),
+        user_id: Set(user_id),
+    };
+
     Ok(web::Redirect::to("/").using_status_code(StatusCode::FOUND))
 }
 
