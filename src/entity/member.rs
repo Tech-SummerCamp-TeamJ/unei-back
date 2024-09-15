@@ -9,10 +9,19 @@ pub struct Model {
     pub id: Uuid,
     pub user_id: Uuid,
     pub is_admin: bool,
+    pub group_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::group::Entity",
+        from = "Column::GroupId",
+        to = "super::group::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Group,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UserId",
@@ -21,6 +30,12 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     User,
+}
+
+impl Related<super::group::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Group.def()
+    }
 }
 
 impl Related<super::user::Entity> for Entity {
