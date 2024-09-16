@@ -1,4 +1,5 @@
 mod entity;
+mod event_scheme;
 mod group_scheme;
 
 use actix_identity::{Identity, IdentityMiddleware};
@@ -17,7 +18,9 @@ use actix_web::{
     web::Query,
     HttpRequest, HttpResponse,
 };
+use chrono::NaiveDate;
 use entity::{
+    event,
     group::{self, Entity},
     member,
     prelude::*,
@@ -215,6 +218,40 @@ async fn groups(
     Ok(HttpResponse::Created().json(group_id))
 }
 
+#[post("/groups/{group_id}/events")]
+async fn events(
+    identity: Option<Identity>,
+    app_state: web::Data<AppState>,
+    event: web::Json<event_scheme::Event>,
+) -> actix_web::Result<impl Responder> {
+    let event = event.into_inner();
+    let session_id = match identity {
+        Some(id) => id.id()?,
+        None => return Err(error::ErrorUnauthorized("Unauthorized")),
+    };
+    let user_id = Session::find()
+        .filter(session::Column::SessionId.eq(session_id))
+        .one(&app_state.db)
+        .await
+        .map_err(|err| {
+            error::ErrorInternalServerError(format!("Failed to get session: {:?}", err))
+        })?
+        .map(|session| session.user_id)
+        .ok_or_else(|| error::ErrorUnauthorized("Unauthorized"))?;
+
+    event::ActiveModel {
+        id: Set(Uuid::now_v7()),
+        description: Set(event.description),
+        event_date: Set(NaiveDate::parse_from_str(&event.event_date, "%Y-%m-%d").unwrap()),
+        author_id: Set(Some(user_id)),
+    }
+    .insert(&app_state.db)
+    .await
+    .map_err(|err| error::ErrorInternalServerError(format!("Failed to insert event: {:?}", err)))?;
+
+    Ok(HttpResponse::Created().finish())
+}
+
 #[derive(Deserialize, Debug)]
 struct DiscordUser {
     id: String,
@@ -275,6 +312,8 @@ async fn main(
                 .service(login)
                 .service(callback)
                 .service(logout)
+                .service(groups)
+                .service(events)
                 .wrap(Logger::default()),
         );
     };

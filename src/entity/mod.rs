@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod comment;
+pub mod comment_reacted_user;
 pub mod event;
 pub mod group;
 pub mod member;
