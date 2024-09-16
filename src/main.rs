@@ -251,7 +251,43 @@ async fn events(
 
     Ok(HttpResponse::Created().finish())
 }
+#[get("/groups/{group_id}/events")]
+async fn get_events(
+    identity: Option<Identity>,
+    app_state: web::Data<AppState>,
+    group_id: web::Path<Uuid>,
+) -> actix_web::Result<impl Responder> {
+    let session_id = match identity {
+        Some(id) => id.id()?,
+        None => return Err(error::ErrorUnauthorized("Unauthorized")),
+    };
+    let user_id = Session::find()
+        .filter(session::Column::SessionId.eq(session_id))
+        .one(&app_state.db)
+        .await
+        .map_err(|err| {
+            error::ErrorInternalServerError(format!("Failed to get session: {:?}", err))
+        })?
+        .map(|session| session.user_id)
+        .ok_or_else(|| error::ErrorUnauthorized("Unauthorized"))?;
 
+    let event_list = entity::prelude::Event::find()
+        .all(&app_state.db)
+        .await
+        .map_err(|err| {
+            error::ErrorInternalServerError(format!("Failed to get events: {:?}", err))
+        })?;
+    let event_list = event_list
+        .into_iter()
+        .map(|event| event_scheme::EventListResponse {
+            id: event.id.to_string(),
+            name: "Test".to_string(),
+            description: event.description,
+        })
+        .collect::<Vec<_>>();
+
+    Ok(HttpResponse::Ok().json(event_list))
+}
 #[derive(Deserialize, Debug)]
 struct DiscordUser {
     id: String,
@@ -314,6 +350,7 @@ async fn main(
                 .service(logout)
                 .service(groups)
                 .service(events)
+                .service(get_events)
                 .wrap(Logger::default()),
         );
     };
