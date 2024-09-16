@@ -25,6 +25,7 @@ migration = { path = "./migration" }
 sqlx = "0.7.1"
 tokio = { version = "1", features = ["full"] }
 uuid = { version = "1.10.0", features = ["v7"] }
+chrono = "0.4.38"
 
 [workspace]
 members = [".", "migration"]

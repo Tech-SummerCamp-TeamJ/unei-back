@@ -1,6 +1,6 @@
 use sea_orm_migration::prelude::*;
 
-use crate::{m20240914_134946_create_user::User, m20240914_145822_create_tag::Tag};
+use crate::m20240914_134946_create_user::User;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -11,16 +11,20 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Event::Table)
+                    .table(Session::Table)
                     .if_not_exists()
-                    .col(ColumnDef::new(Event::Id).uuid().not_null().primary_key())
-                    .col(ColumnDef::new(Event::Description).string().not_null())
-                    .col(ColumnDef::new(Event::EventDate).date().not_null())
-                    .col(ColumnDef::new(Event::AuthorId).uuid())
+                    .col(ColumnDef::new(Session::Id).uuid().primary_key().not_null())
+                    .col(
+                        ColumnDef::new(Session::SessionId)
+                            .unique_key()
+                            .string()
+                            .not_null(),
+                    )
+                    .col(ColumnDef::new(Session::UserId).uuid().not_null())
                     .foreign_key(
                         ForeignKey::create()
-                            .name("fk_event_author_id")
-                            .from(Event::Table, Event::AuthorId)
+                            .name("fk_user_id")
+                            .from(Session::Table, Session::UserId)
                             .to(User::Table, User::Id),
                     )
                     .to_owned(),
@@ -30,16 +34,15 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(Event::Table).to_owned())
+            .drop_table(Table::drop().table(Session::Table).to_owned())
             .await
     }
 }
 
 #[derive(DeriveIden)]
-pub(crate) enum Event {
+enum Session {
     Table,
     Id,
-    Description,
-    EventDate,
-    AuthorId,
+    SessionId,
+    UserId,
 }

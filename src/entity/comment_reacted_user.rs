@@ -3,25 +3,33 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "member")]
+#[sea_orm(table_name = "comment_reacted_user")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
+    pub comment_id: Uuid,
+    pub reaction_id: Uuid,
     pub user_id: Uuid,
-    pub is_admin: bool,
-    pub group_id: Uuid,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::group::Entity",
-        from = "Column::GroupId",
-        to = "super::group::Column::Id",
+        belongs_to = "super::comment::Entity",
+        from = "Column::CommentId",
+        to = "super::comment::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    Group,
+    Comment,
+    #[sea_orm(
+        belongs_to = "super::reaction::Entity",
+        from = "Column::ReactionId",
+        to = "super::reaction::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    Reaction,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UserId",
@@ -32,9 +40,15 @@ pub enum Relation {
     User,
 }
 
-impl Related<super::group::Entity> for Entity {
+impl Related<super::comment::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Group.def()
+        Relation::Comment.def()
+    }
+}
+
+impl Related<super::reaction::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Reaction.def()
     }
 }
 
